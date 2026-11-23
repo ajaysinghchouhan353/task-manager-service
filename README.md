@@ -27,8 +27,8 @@ javac -d out\classes -encoding UTF-8 (Get-ChildItem -Recurse -Filter *.java).Ful
 Run:
 
 ```powershell
-java -cp out\classes assignment_task_manager.app.Main
-java -cp out\classes assignment_task_manager.app.TestRunner
+java -cp out\classes app.Main
+java -cp out\classes app.TestRunner
 ```
 
 Set a real provider key only for LLM calls:
