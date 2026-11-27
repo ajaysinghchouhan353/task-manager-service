@@ -50,6 +50,10 @@ Example success: `{"status":200,"body":{"id":1,"title":"Pay rent","completed":fa
 
 Example error: `{"status":404,"body":{"error":{"code":"NOT_FOUND","message":"Task 99 not found","details":[]}}}`
 
+### Observer behavior
+
+Observers are notified after task creation, update/completion, and deletion. `removeListener` stops console notifications from the removed listener. This behavior is demonstrated in `app.Main`.
+
 ### listTasks
 
 | | |
@@ -132,13 +136,15 @@ Example error: `{"status":400,"body":{"error":{"code":"VALIDATION_ERROR","messag
 |---|---|
 | Java method | `ApiResponse listSubtasks(int parentId)` |
 | Success | `200` — a list of direct subtasks |
-| Errors | `400 VALIDATION_ERROR`, `404 NOT_FOUND`, `500 INTERNAL_ERROR` |
+| Errors | `404 NOT_FOUND`, `500 INTERNAL_ERROR` |
 
 Example request: `parentId=1`.
 
 Example success: `{"status":200,"body":[{"id":2,"title":"Write cheque","parentId":1}]}`
 
 Example error: `{"status":404,"body":{"error":{"code":"NOT_FOUND","message":"Task 99 not found","details":[]}}}`
+
+A subtask may be queried with `listSubtasks`; it has no direct subtasks and therefore returns `[]`.
 
 ### breakDownTask
 
@@ -190,3 +196,12 @@ Example error: `{"status":400,"body":{"error":{"code":"VALIDATION_ERROR","messag
 | 502 | `BAD_GATEWAY` | LLM call failed or model output failed validation |
 | 503 | `SERVICE_UNAVAILABLE` | `LLM_API_KEY` is missing or blank |
 | 500 | `INTERNAL_ERROR` | Unexpected failure; no stack trace |
+
+## Additional contract rules
+
+- `completed` in `TaskRequest` is required and must be exactly `"true"` or `"false"`.
+- `priority` must be exactly `LOW`, `MEDIUM`, or `HIGH`; omitted priority defaults to `MEDIUM`.
+- Listing starts at page 1. `pageSize` defaults to 10 and must be at least 1. A page beyond the last page returns `200` with `items: []`.
+- `breakDownTask` returns `201` after all subtasks are created. A failure saves no subtasks.
+- `recurrence` is informational model metadata for AI task creation and is not stored as a `Task` field.
+- Idempotency keys are scoped by operation and full request fingerprint. Reusing a key across operations or with different request contents returns `422`.

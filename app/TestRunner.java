@@ -60,6 +60,8 @@ public class TestRunner {
         ApiResponse invalid = api.createTask(new TaskRequest("", "", "maybe", "2026-02-30", "URGENT"), null);
         check("invalid input status", 400, invalid.getStatus());
         check("invalid input code", true, invalid.toJson().contains("\"code\":\"VALIDATION_ERROR\""));
+        check("lowercase priority status", 400,
+                api.createTask(new TaskRequest("Lower", "Priority", "false", null, "high"), null).getStatus());
         check("unknown task status", 404, api.getTask(999).getStatus());
 
         FakeLlmClient countingAi = new FakeLlmClient();
@@ -103,6 +105,9 @@ public class TestRunner {
                 : 1, new TaskRequest("Write cheque", "Write rent cheque", "false", null, "MEDIUM"));
         check("create subtask status", 201, sub.getStatus());
         check("list subtasks status", 200, api.listSubtasks(1).getStatus());
+        check("listing subtasks of a subtask returns empty list", true,
+                api.listSubtasks(((Integer) ((java.util.Map<String, Object>) sub.getBody()).get("id")))
+                        .toJson().contains("\"body\":[]"));
 
         ApiResponse breakdown = api.breakDownTask(1, "key-breakdown");
         check("breakdown status", 201, breakdown.getStatus());
@@ -115,6 +120,8 @@ public class TestRunner {
         check("invalid priority status", 400, api.listByPriority("URGENT").getStatus());
         check("page beyond last page is empty", true,
                 api.listTasks(TaskQuery.builder().page(999).pageSize(10).build()).toJson().contains("\"items\":[]"));
+        check("overflowing page status", 400,
+                api.listTasks(TaskQuery.builder().page(Integer.MAX_VALUE).pageSize(Integer.MAX_VALUE).build()).getStatus());
 
         ApiResponse deleted = api.deleteTask(1);
         check("delete parent status", 200, deleted.getStatus());

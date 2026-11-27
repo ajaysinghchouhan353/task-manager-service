@@ -73,6 +73,8 @@ public class TaskApi {
             if (query == null) query = TaskQuery.builder().build();
             if (query.getPage() < 1) throw new ValidationException("page", "must be at least 1");
             if (query.getPageSize() < 1) throw new ValidationException("pageSize", "must be at least 1");
+            if ((query.getPage() - 1) > Integer.MAX_VALUE / query.getPageSize())
+                throw new ValidationException("page", "is too large");
             if (query.getSortBy() != null && !"createdAt".equalsIgnoreCase(query.getSortBy())
                     && !"dueDate".equalsIgnoreCase(query.getSortBy()))
                 throw new ValidationException("sortBy", "must be createdAt or dueDate");
@@ -146,9 +148,7 @@ public class TaskApi {
 
     public ApiResponse listSubtasks(int parentId) {
         try {
-            Task parent = service.require(parentId);
-            if (parent.getParentId() != null)
-                throw new ValidationException("parentId", "a subtask cannot have subtasks");
+            service.require(parentId);
             List<Map<String, Object>> items = new ArrayList<>();
             for (Task task : repository.findAll())
                 if (Integer.valueOf(parentId).equals(task.getParentId())) items.add(task.toMap());
@@ -198,13 +198,16 @@ public class TaskApi {
     }
 
     private ApiResponse breakDownTaskLocked(int id, String idempotencyKey) {
-        String fingerprint = "breakDownTask:" + id;
+        String fingerprint = null;
         try {
-            ApiResponse replay = checkIdempotency(idempotencyKey, fingerprint);
-            if (replay != null) return replay;
             Task parent = service.require(id);
             if (parent.getParentId() != null)
                 throw new ValidationException("parentId", "a subtask cannot be broken down");
+            fingerprint = "breakDownTask:" + id
+                    + ":" + lengthValue(parent.getTitle())
+                    + ":" + lengthValue(parent.getDescription());
+            ApiResponse replay = checkIdempotency(idempotencyKey, fingerprint);
+            if (replay != null) return replay;
             String key = System.getenv("LLM_API_KEY");
             if (llmClientIsReal() && (key == null || key.isBlank()))
                 throw new ServiceUnavailableException("LLM_API_KEY is not set");

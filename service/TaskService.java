@@ -37,7 +37,7 @@ public class TaskService {
                 && !DateHelper.isValidDate(request.getDueDate()))
             issues.add(new FieldIssue("dueDate", "must be a real date in YYYY-MM-DD format"));
         if (request.getPriority() != null && !request.getPriority().isBlank()) {
-            try { Priority.valueOf(request.getPriority().trim()); }
+            try { Priority.valueOf(request.getPriority()); }
             catch (IllegalArgumentException e) {
                 issues.add(new FieldIssue("priority", "must be LOW, MEDIUM or HIGH"));
             }
@@ -48,7 +48,7 @@ public class TaskService {
     public Task create(TaskRequest request, Integer parentId) {
         validate(request);
         Priority priority = request.getPriority() == null || request.getPriority().isBlank()
-                ? Priority.MEDIUM : Priority.valueOf(request.getPriority().trim().toUpperCase());
+                ? Priority.MEDIUM : Priority.valueOf(request.getPriority());
         String dueDate = request.getDueDate() == null || request.getDueDate().isBlank()
                 ? null : request.getDueDate().trim();
         Task task = Task.builder().title(request.getTitle().trim())
@@ -64,7 +64,7 @@ public class TaskService {
         Task existing = require(id);
         validate(request);
         Priority priority = request.getPriority() == null || request.getPriority().isBlank()
-                ? Priority.MEDIUM : Priority.valueOf(request.getPriority().trim().toUpperCase());
+                ? Priority.MEDIUM : Priority.valueOf(request.getPriority());
         String dueDate = request.getDueDate() == null || request.getDueDate().isBlank()
                 ? null : request.getDueDate().trim();
         Task updated = Task.builder().id(id).title(request.getTitle().trim())
